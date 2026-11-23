@@ -1,16 +1,16 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter,Depends,HTTPException
 from starlette.concurrency import run_in_threadpool
+from app.api.dependencies import require_service_key
 from app.core.config import settings
-from app.schemas.shared import ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse
+from app.schemas.shared import ChatRequest,ChatResponse,EmbeddingRequest,EmbeddingResponse
 from app.shared.groq_client import create_chat_completion
 from app.shared.embedding_service import embed_texts
 logger=logging.getLogger(__name__)
-router=APIRouter(prefix='/api/v1/shared',tags=['shared'])
+router=APIRouter(prefix='/api/v1/shared',tags=['shared'],dependencies=[Depends(require_service_key)])
 @router.post('/chat',response_model=ChatResponse)
 async def chat(req:ChatRequest):
-    try:
-        content=await run_in_threadpool(create_chat_completion,[m.model_dump() for m in req.messages],max_completion_tokens=req.max_completion_tokens)
+    try: content=await run_in_threadpool(create_chat_completion,[m.model_dump() for m in req.messages],max_completion_tokens=req.max_completion_tokens)
     except RuntimeError as e: raise HTTPException(status_code=503,detail=str(e)) from e
     except Exception as e:
         logger.exception('LLM request failed')
