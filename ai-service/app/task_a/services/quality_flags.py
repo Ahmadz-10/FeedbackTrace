@@ -1,4 +1,4 @@
-"""Quality flag untuk komentar. Komentar bermasalah ditandai, tidak dihapus diam-diam."""
+"""Flag kualitas komentar dan hasil analisis."""
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -15,6 +15,9 @@ class QualityFlag(StrEnum):
     INVALID_SUBMITTED_AT = "invalid_submitted_at"
     INVALID_LANGUAGE_HINT = "invalid_language_hint"
     PII_REDACTED = "pii_redacted"
+    NO_ASPECT_FOUND = "no_aspect_found"
+    LLM_ERROR = "llm_error"
+    INVALID_LLM_OUTPUT = "invalid_llm_output"
     PRIVACY_BLOCKED = "privacy_blocked"
 
 BLOCKING_FLAGS = frozenset({
@@ -31,7 +34,7 @@ class QualityAssessment:
     flags: list[QualityFlag] = field(default_factory=list)
     @property
     def analyzable(self) -> bool:
-        return not any(f in BLOCKING_FLAGS for f in self.flags)
+        return not any(flag in BLOCKING_FLAGS for flag in self.flags)
     def add(self, flag: QualityFlag) -> None:
         if flag not in self.flags:
             self.flags.append(flag)
@@ -41,7 +44,7 @@ def assess_text(original: str, normalized: str) -> QualityAssessment:
     if not original.strip() or not normalized:
         result.add(QualityFlag.EMPTY_COMMENT)
         return result
-    letters = sum(1 for ch in normalized if ch.isalpha())
+    letters = sum(ch.isalpha() for ch in normalized)
     if letters == 0:
         result.add(QualityFlag.NO_TEXT_CONTENT)
     elif letters < MIN_LETTERS:
