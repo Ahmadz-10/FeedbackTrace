@@ -1,13 +1,11 @@
-# Kontrak Data Task A
+# Kontrak Output Task A dan Serah Terima ke Task B
 
-## Request
-`POST /api/v1/task-a/analyze` menerima metadata batch, opsi, dan 1–500 komentar. ID feedback harus unik dalam batch. Komentar asli tidak diubah; hanya teks hasil preprocessing dan redaksi yang dikirim ke LLM.
+Hasil per komentar berisi status, quality flags, mention aspek, sentimen per aspek, jenis/kategori alasan, dan evidence. Evidence yang berstatus valid selalu disertai offset ke teks komentar asli; kutipan yang tidak ditemukan tidak pernah dianggap valid.
 
-## Analisis dan validasi
-Setiap mention harus menggunakan taxonomy/aspect dan reason category yang dikenal, dengan sentiment dan reason_type konsisten. Setiap mention harus merujuk feedback_id pemilik. Bukti harus ditemukan dalam teks yang dilihat model dan dipetakan kembali ke teks asli; offset dari model tidak dipercaya. Mention tanpa bukti valid dibuang.
+Konsolidasi hanya memproses mention dengan sekurang-kurangnya satu evidence valid. Kunci kelompok: aspect_code, label aspek usulan, reason_category, reason_type. Tidak ada threshold jumlah; kelompok satu feedback tetap ditampilkan. ID temuan deterministik berdasarkan batch dan kunci kelompok. Angka dan distribusi sentimen dihitung di Python.
 
-## Retry
-`max_retries` menentukan jumlah percobaan ulang di luar panggilan pertama (0–3). Aplikasi memberi catatan kesalahan validator sebagai petunjuk koreksi. Hasil percobaan terbaik dipertahankan. Kegagalan satu komentar tidak menghentikan batch.
+Temuan memuat unique_feedback_count, mention_count, supporting_feedback_ids, sentiment_distribution, minority_views, single_feedback_support, quality_flags, dan review_status awal pending_review. Pujian dan keluhan tidak dicampur. Pandangan berlawanan dari feedback lain di aspek yang sama disimpan sebagai minority_views tanpa menghapus temuan sumbernya.
 
-## Hasil
-Respons memuat status per komentar, mention, evidence, quality flags, metadata model/prompt/pipeline, statistik, dan warning. Hanya hasil yang telah lolos validasi yang dapat menjadi bahan konsolidasi. Temuan yang disetujui staf saja dikirim ke Task B.
+Judul dan ringkasan temuan dapat dibantu LLM berdasarkan kutipan yang telah diverifikasi. Model tidak menghitung jumlah atau membuat rekomendasi. Hasil yang ditolak memakai templat deterministik dan quality flag summary_fallback. Penggabungan embedding tidak aktif secara default dan hanya dipertimbangkan setelah evaluasi berlabel manusia.
+
+**Batas Task A:** hanya temuan yang telah direview dan berstatus `approved` oleh staf boleh diserahkan ke Task B. IPA, dokumen, RAG, dan rekomendasi tetap berada pada Task B.

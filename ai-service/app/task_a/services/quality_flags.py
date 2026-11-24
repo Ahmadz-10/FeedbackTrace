@@ -7,7 +7,7 @@ class QualityFlag(StrEnum):
     INVALID_SUBMITTED_AT="invalid_submitted_at";INVALID_LANGUAGE_HINT="invalid_language_hint";PII_REDACTED="pii_redacted"
     NO_ASPECT_FOUND="no_aspect_found";LLM_ERROR="llm_error";INVALID_LLM_OUTPUT="invalid_llm_output"
     VALIDATION_FAILED="validation_failed";UNSUPPORTED_MENTION_DROPPED="unsupported_mention_dropped"
-    PRIVACY_BLOCKED="privacy_blocked"
+    SUMMARY_FALLBACK="summary_fallback";PRIVACY_BLOCKED="privacy_blocked"
 BLOCKING_FLAGS=frozenset({QualityFlag.EMPTY_COMMENT,QualityFlag.NO_TEXT_CONTENT,QualityFlag.VERY_SHORT,QualityFlag.TOO_LONG,
     QualityFlag.INVALID_ITEM,QualityFlag.MISSING_FEEDBACK_ID,QualityFlag.MISSING_QUESTION_ID,QualityFlag.MISSING_COMMENT_TEXT,
     QualityFlag.INVALID_COMMENT_TYPE,QualityFlag.PRIVACY_BLOCKED})
