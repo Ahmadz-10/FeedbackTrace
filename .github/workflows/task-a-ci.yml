@@ -1,0 +1,55 @@
+name: Task A CI
+
+on:
+  push:
+    branches:
+      - feature/task-a-feedback-intelligence
+    paths:
+      - "ai-service/**"
+      - "app/Models/TaskA/**"
+      - "database/migrations/2026_11_23_10000*.php"
+      - "tests/Feature/TaskA/**"
+      - ".github/workflows/task-a-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "ai-service/**"
+      - "app/Models/TaskA/**"
+      - "database/migrations/2026_11_23_10000*.php"
+      - "tests/Feature/TaskA/**"
+
+permissions:
+  contents: read
+
+jobs:
+  python-task-a:
+    name: Python Task A tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "fastapi>=0.115,<1" "pydantic-settings>=2.4" "groq>=0.11" "pytest>=8" "httpx>=0.27"
+      - name: Run Task A tests
+        working-directory: ai-service
+        env:
+          PYTHONPATH: .
+        run: python -m pytest tests/task_a -q
+
+  php-syntax:
+    name: PHP Task A syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+      - name: Lint migrations, models, and feature tests
+        run: |
+          find database/migrations app/Models/TaskA tests/Feature/TaskA -type f -name "*.php" -print0 | xargs -0 -n1 php -l
