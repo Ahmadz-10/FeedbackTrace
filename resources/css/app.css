@@ -125,3 +125,7 @@ body.ft-body { margin: 0; min-width: 320px; background: #f6f8fb; }
     .ft-panel { padding: 15px 12px; }
     .ft-footer { flex-direction: column; gap: 6px; }
 }
+
+.ft-db-notice { display:flex; flex-direction:column; gap:5px; margin: -7px 0 18px; padding:13px 15px; border:1px solid #f0dfbd; border-radius:9px; color:#89652c; background:#fffaf0; font-size:11px; line-height:1.5; }
+.ft-db-notice strong { font-size:11px; }
+.ft-db-notice code { padding:2px 4px; border-radius:4px; color:#70501d; background:#f9edcf; font-size:10px; }
