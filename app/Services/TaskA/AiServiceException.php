@@ -4,6 +4,7 @@ namespace App\Services\TaskA;
 
 use RuntimeException;
 
+/** Kegagalan koneksi atau respons AI service. Jaringan dan 5xx dapat dicoba ulang. */
 class AiServiceException extends RuntimeException
 {
     public function __construct(
@@ -16,6 +17,6 @@ class AiServiceException extends RuntimeException
 
     public function isRetryable(): bool
     {
-        return true;
+        return $this->status === null || $this->status >= 500;
     }
 }
