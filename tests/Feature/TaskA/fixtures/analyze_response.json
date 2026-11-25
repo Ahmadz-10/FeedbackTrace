@@ -14,9 +14,9 @@
       "temperature": 0.0,
       "json_mode": true,
       "max_completion_tokens": 4096,
-      "prompt_fingerprint": "97807f5c1c83",
+      "prompt_fingerprint": "daf609a1f721",
       "summary_prompt_version": "finding_summary_v1",
-      "summary_prompt_fingerprint": "2ff07ed2fc6a",
+      "summary_prompt_fingerprint": "0d93e679d77b",
       "summary_model_ids": ["model-aktual-v1"]
     }
   },
