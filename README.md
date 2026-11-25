@@ -27,6 +27,14 @@ From the repository root:
     composer install
     if (!(Test-Path .env)) { Copy-Item .env.example .env }
     php artisan key:generate
+
+For the default SQLite setup, ensure `DB_CONNECTION=sqlite` is set in `.env`, then:
+
+    New-Item -ItemType File -Path database/database.sqlite -Force | Out-Null
+    php artisan migrate
+
+Install and build frontend assets:
+
     npm install
     npm run build
     php artisan serve
@@ -36,6 +44,8 @@ Open http://127.0.0.1:8000.
 No FastAPI setup, Groq API key, queue worker, or Task A migration is required to preview these pages.
 
 For Vite hot reload during development, use `npm run dev` in a separate terminal instead of `npm run build`.
+
+Do not run `php artisan migrate:fresh` on a database with data you need.
 
 ## Branch workflow
 
