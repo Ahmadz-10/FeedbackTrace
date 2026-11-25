@@ -51,8 +51,15 @@
                     <h1>Dashboard</h1>
                     <p>Monitor feedback processing and review consolidated findings.</p>
                 </div>
-                <div class="ft-live-pill"><span></span> Live database overview</div>
+                <div class="ft-live-pill"><span></span> {{ $databaseReady ? "Live database overview" : "Waiting for database setup" }}</div>
             </section>
+
+            @unless ($databaseReady)
+                <div class="ft-db-notice" role="status">
+                    <strong>Database setup is not complete.</strong>
+                    <span>Configure the root .env file and run <code>php artisan migrate</code> from the FeedbackTrace project folder. Dashboard counts will appear once the Task A tables are available.</span>
+                </div>
+            @endunless
 
             <section class="ft-stat-grid" aria-label="Workspace statistics">
                 <article class="ft-stat-card">
