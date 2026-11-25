@@ -1,213 +1,175 @@
 # Running FeedbackTrace — Task A and Task B
 
-This guide explains how to check out and run each task on its own Git branch. **Task A and Task B are separate development branches.** Use the branch assigned to the task you are working on; do not assume files from one branch are already present on the other.
+This guide covers local setup for both development branches. Run only the commands for the branch you have checked out.
 
 ## 1. Prerequisites
 
-Install:
 - Git
-- PHP 8.3+ and the PDO SQLite extension (or PDO MySQL if using MySQL)
+- PHP 8.3+ with PDO SQLite (or PDO MySQL)
 - Composer
 - Node.js and npm
-- Python 3.11+ and pip (needed for Task A's AI service)
-- A Groq API key for Groq-backed AI calls (not required just to start Laravel or check health endpoints)
+- Python 3.11+ and pip (Task A only)
+- A Groq API key for live LLM analysis
 
-The commands below use Windows PowerShell and SQLite for a local database. MySQL can be configured instead if your team shares a database.
+The PowerShell commands below assume SQLite for a local database. Never commit either environment file.
 
-## 2. Common Laravel setup (both tasks)
+## 2. Common Laravel setup
 
-Run from the repository root, `FeedbackTrace/`.
+Run from the repository root:
 
-```powershell
-composer install
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
-php artisan key:generate
-npm install
-```
+    composer install
+    if (!(Test-Path .env)) { Copy-Item .env.example .env }
+    php artisan key:generate
+    npm install
 
-For a local SQLite database, create the file and ensure root `.env` contains `DB_CONNECTION=sqlite`:
+For SQLite, set DB_CONNECTION=sqlite in root .env, then create the file if it does not exist:
 
-```powershell
-New-Item -ItemType File -Path database/database.sqlite -Force | Out-Null
-```
+    New-Item -ItemType File -Path database/database.sqlite -Force | Out-Null
+    php artisan migrate
+    php artisan migrate:status
 
-Run migrations for the branch you have checked out:
+Do not use php artisan migrate:fresh on a database with data you need. The Task A branch contains Task A migrations; coordinate before running migrations against a shared database.
 
-```powershell
-php artisan migrate
-php artisan migrate:status
-```
+Run Laravel and Vite in separate terminals:
 
-Do not use `php artisan migrate:fresh` on a database containing work you need to keep; it drops existing tables.
+    php artisan serve --host=127.0.0.1 --port=8000
 
-Start Laravel in one terminal:
+    npm run dev
 
-```powershell
-php artisan serve --host=127.0.0.1 --port=8000
-```
-
-Start Vite in another terminal:
-
-```powershell
-npm run dev
-```
-
-Open http://127.0.0.1:8000. Laravel's health route is http://127.0.0.1:8000/up.
+Open http://127.0.0.1:8000. On Task A, this now displays the FeedbackTrace dashboard instead of Laravel's default welcome page. The dashboard metrics are read from the local Laravel database.
 
 ## 3. Task A — Student Feedback Intelligence
 
-### Check out Task A
+### Get the branch
 
-For an existing clone:
-
-```powershell
-git status
-git fetch origin
-git switch feature/task-a-feedback-intelligence
-git pull origin feature/task-a-feedback-intelligence
-```
-
-For a fresh clone:
-
-```powershell
-git clone https://github.com/Ahmadz-10/FeedbackTrace.git
-cd FeedbackTrace
-git switch feature/task-a-feedback-intelligence
-```
+    git status
+    git fetch origin
+    git switch feature/task-a-feedback-intelligence
+    git pull origin feature/task-a-feedback-intelligence
 
 Commit or stash local changes before switching branches.
 
-### Start the Task A AI service
+### Configure the AI service
 
-Keep Laravel and Vite running as described above. Open a third terminal at the repository root:
+From the repository root:
 
-```powershell
-cd ai-service
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
-```
+    cd ai-service
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+    if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
-If PowerShell blocks virtual-environment activation:
+If PowerShell blocks activation:
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
-```
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+    .\.venv\Scripts\Activate.ps1
 
-Configure `ai-service/.env` as required:
+In ai-service/.env, configure at least:
 
-```dotenv
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=openai/gpt-oss-20b
-EMBEDDING_MODEL=intfloat/multilingual-e5-base
-EMBEDDING_DEVICE=cpu
-EMBEDDING_BATCH_SIZE=16
-SERVICE_API_KEY=replace_with_a_long_random_secret
-CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
-```
+    GROQ_API_KEY=your_groq_api_key
+    GROQ_MODEL=openai/gpt-oss-20b
+    EMBEDDING_MODEL=intfloat/multilingual-e5-base
+    EMBEDDING_DEVICE=cpu
+    EMBEDDING_BATCH_SIZE=16
+    SERVICE_API_KEY=your_random_service_secret
+    CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
 
-Keep API keys private. Never commit either `.env` file. A Groq key is needed for Groq-backed requests. If `SERVICE_API_KEY` is set, protected shared POST endpoints require the `X-Service-Key` header. Embedding model weights download on first use.
+In the root Laravel .env, configure:
 
-From inside `ai-service/`, start FastAPI:
+    AI_SERVICE_URL=http://127.0.0.1:8001
+    AI_SERVICE_KEY=the_same_value_as_SERVICE_API_KEY
+    AI_SERVICE_TIMEOUT=30
+    QUEUE_CONNECTION=database
 
-```powershell
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
-```
+The two service-key values must match exactly. Keep them secret. The embedding model downloads on first use.
 
-Open:
-- API documentation: http://127.0.0.1:8001/docs
-- Shared health: http://127.0.0.1:8001/health
-- Task A health: http://127.0.0.1:8001/api/v1/task-a/health
+Start FastAPI from inside ai-service:
 
-### Test Task A
+    python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 
-From `ai-service/` with the virtual environment activated:
+Run one Uvicorn process only. Task A job state is currently held in that process's memory; do not use multiple workers.
 
-```powershell
-python -m pytest -q
-python -m pytest tests/task_a -q
-```
+### Start the queue worker
 
-From the repository root, run Laravel tests:
+From the repository root, open another terminal:
 
-```powershell
-php artisan test
-```
+    php artisan queue:work
 
-**Task A implementation status:** Task A processing services and the module health route exist. The public `POST /api/v1/task-a/analyze` endpoint, Laravel-to-AI integration, result persistence flow, and staff review screens are not yet implemented. Starting the servers confirms the foundations only; it does not yet run the complete feedback-analysis workflow.
+The worker is required for Laravel to submit batches, poll FastAPI jobs, and persist results. Leave it running during analysis.
+
+### Available endpoints
+
+FastAPI:
+- GET http://127.0.0.1:8001/health
+- GET http://127.0.0.1:8001/api/v1/task-a/health
+- POST http://127.0.0.1:8001/api/v1/task-a/analyze — start background analysis
+- GET /api/v1/task-a/jobs/{job_id} — poll job status
+- GET /api/v1/task-a/batches/{batch_id}/results — retrieve completed results
+- GET /api/v1/task-a/batches/{batch_id}/summary — dashboard summary contract
+- GET /api/v1/task-a/findings/{finding_id} — finding drilldown
+
+The non-health Task A endpoints require X-Service-Key when SERVICE_API_KEY is set.
+
+Laravel review API:
+- POST /api/v1/task-a/findings/{finding_code}/review
+- Requires an authenticated Laravel session and CSRF protection. The repository does not yet include a login screen or interactive review UI; this endpoint is available for integration and tests.
+
+### Start a batch (temporary developer workflow)
+
+Batch creation/import UI is not included yet. Once a FeedbackBatch and its FeedbackRecord rows exist, dispatch analysis through Tinker from the repository root:
+
+    php artisan tinker
+
+Then run:
+
+    $batch = App\Models\TaskA\FeedbackBatch::where('batch_code', 'YOUR_BATCH_CODE')->firstOrFail();
+    App\Jobs\TaskA\AnalyzeFeedbackBatch::start($batch);
+
+Keep php artisan queue:work and FastAPI running. Check the batch status in the database/dashboard. The Python job store is in-memory; a FastAPI restart during an active job causes Laravel to mark that analysis as failed so it can be restarted. Laravel's database is the permanent record.
+
+### Tests
+
+From ai-service with the virtual environment activated:
+
+    python -m pytest -q
+    python -m pytest tests/task_a -q
+
+From the repository root (after composer install):
+
+    php artisan test
+
+Live Groq tests are opt-in and need a valid API key. Do not share secrets in logs or commits.
 
 ## 4. Task B — Service Quality Decision Intelligence
 
-### Check out Task B
+### Get the branch
 
-For an existing clone:
+    git status
+    git fetch origin
+    git switch feature/task-b-decision-intelligence
+    git pull origin feature/task-b-decision-intelligence
 
-```powershell
-git status
-git fetch origin
-git switch feature/task-b-decision-intelligence
-git pull origin feature/task-b-decision-intelligence
-```
+The currently inspected Task B branch contains the Laravel starter application only. Its IPA, document retrieval, RAG, recommendation pipeline, FastAPI module, and Task B routes have not yet been implemented on that branch.
 
-For a fresh clone:
+Use Common Laravel setup above to run the Laravel app and Vite. Do not copy Task A's FastAPI or queue workflow and assume it starts Task B.
 
-```powershell
-git clone https://github.com/Ahmadz-10/FeedbackTrace.git
-cd FeedbackTrace
-git switch feature/task-b-decision-intelligence
-```
+## 5. Troubleshooting
 
-Commit or stash local changes before switching branches.
-
-### Start Task B
-
-On the currently inspected Task B branch, the Laravel project is present, but the Python `ai-service/` directory and Task B API/pipeline are not present yet. Therefore, start the Laravel application using **Common Laravel setup (both tasks)** above:
-
-- Terminal 1 — repository root: `php artisan serve --host=127.0.0.1 --port=8000`
-- Terminal 2 — repository root: `npm run dev`
-
-Run its Laravel tests from the repository root:
-
-```powershell
-php artisan test
-```
-
-Check Laravel health at http://127.0.0.1:8000/up.
-
-**Task B implementation status:** the inspected branch currently contains the Laravel starter application, not the Task B IPA, document retrieval, RAG, or recommendation pipeline. There is no Task B FastAPI command or Task B endpoint to run on this branch yet. Once the Task B AI service and routes are added, this section must be updated with its actual environment variables, startup command, endpoints, and tests. Do not copy Task A's AI commands and assume they start Task B.
-
-## 5. Which processes should be running?
-
-| Process | Task A | Task B (current branch state) |
-|---|---|---|
-| Laravel web server | Yes — port 8000 | Yes — port 8000 |
-| Vite frontend | Yes — npm run dev | Yes — npm run dev |
-| Python FastAPI | Yes — port 8001 | Not available on inspected branch yet |
-| Task-specific health endpoint | `/api/v1/task-a/health` | Not implemented |
-| Task-specific test suite | `python -m pytest tests/task_a -q` | Not implemented on inspected branch |
-
-To stop a process, press `Ctrl+C` in its terminal. To leave the Python virtual environment, run `deactivate`.
-
-## 6. Troubleshooting
-
-| Problem | What to check |
+| Problem | Check |
 |---|---|
-| `php` or `composer` not recognized | Install PHP/Composer, add them to PATH, and reopen PowerShell |
-| PHP `could not find driver` | Enable `pdo_sqlite` or configure MySQL and enable `pdo_mysql` |
-| SQLite database missing | Create `database/database.sqlite`; verify `DB_CONNECTION=sqlite` |
-| Missing Laravel app key | Run `php artisan key:generate` |
-| `uvicorn` not recognized | Activate Task A's `ai-service/.venv`; reinstall requirements; or run `python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001` |
-| Python cannot import `app` | Run Uvicorn from inside `ai-service/` |
-| Groq configuration error | Check `GROQ_API_KEY` in `ai-service/.env` and restart FastAPI |
-| Shared endpoint returns HTTP 401 | Send `X-Service-Key` matching `SERVICE_API_KEY` |
-| Port already in use | Stop the other process or use a different port |
+| Laravel cannot find SQLite driver | Enable PHP pdo_sqlite or configure MySQL/pdo_mysql |
+| Dashboard shows a database error | Confirm the Task A migrations have run on this branch |
+| FastAPI returns 401 | Match Laravel AI_SERVICE_KEY and FastAPI SERVICE_API_KEY |
+| Batch stays pending | Confirm php artisan queue:work is running |
+| Laravel cannot connect to AI service | Confirm FastAPI is listening on port 8001 and AI_SERVICE_URL is correct |
+| Job disappears after restart | FastAPI job state is in memory; re-dispatch the batch from Tinker |
+| uvicorn not found | Activate ai-service/.venv or use python -m uvicorn |
+| Port already in use | Stop the process occupying port 8000/8001 or update the configured URL |
 
-## 7. Environment files
+## 6. Environment files
 
-- Root `.env`: Laravel app key, database, sessions, cache, queue, and app URL.
-- `ai-service/.env`: Task A/shared AI Groq settings, embedding settings, service API key, and CORS origins (Task A branch).
+- Root .env: Laravel application, database, queue, and AI service connection settings.
+- ai-service/.env: Groq, embedding, FastAPI service key, and CORS settings.
 
-Never commit `.env` files or API credentials. Keep Task A and Task B changes on their designated branches.
+Never commit actual environment files or API credentials.
