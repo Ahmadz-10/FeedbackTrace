@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101828">
-    <title>Dashboard · {{ config('app.name', 'FeedbackTrace') }}</title>
+    <title>Dashboard · FeedbackTrace</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="ft-body">
