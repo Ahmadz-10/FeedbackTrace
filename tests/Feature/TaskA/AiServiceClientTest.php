@@ -85,7 +85,12 @@ it('treats connection failures, 5xx and a rejected key as AiServiceException', f
     $client = app(AiServiceClient::class);
 
     expect(fn () => $client->job('a'))->toThrow(AiServiceException::class, 'HTTP 500');
-    expect(fn () => $client->job('b'))->toThrow(AiServiceException::class, 'AI_SERVICE_KEY');
+    try {
+        $client->job('b');
+        $this->fail('expected rejected key');
+    } catch (AiServiceException $e) {
+        expect($e->getMessage())->toContain('AI_SERVICE_KEY')->and($e->isRetryable())->toBeFalse();
+    }
     try {
         $client->job('c');
     } catch (AiServiceException $e) {
