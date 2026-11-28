@@ -55,7 +55,7 @@ export class TaskAAnalysisService {
     const parsed = extractionSchema.safeParse(raw);
     if (!parsed.success) throw new Error('LLM response did not match Task A schema.');
 
-    const aspectSet = new Set(ASPECT_TAXONOMY.map((x) => x.code));
+    const aspectSet = new Set<string>(ASPECT_TAXONOMY.map((x) => x.code));
     const reasonSet = new Set<string>(REASON_CATEGORIES);
     const mentions: AnalyzedMention[] = [];
     for (const item of parsed.data.mentions.slice(0, options.maxAspects)) {
