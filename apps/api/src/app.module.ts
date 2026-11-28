@@ -9,7 +9,7 @@ import { TaskAModule } from './task-a/task-a.module.js';
 import { TaskBModule } from './task-b/task-b.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, QueueInfrastructureModule, SharedModule, AuthModule, TaskAModule, TaskBModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env', '.env'] }), DatabaseModule, QueueInfrastructureModule, SharedModule, AuthModule, TaskAModule, TaskBModule],
   controllers: [HealthController],
 })
 export class AppModule {}
