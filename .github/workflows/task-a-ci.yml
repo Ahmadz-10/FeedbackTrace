@@ -9,6 +9,13 @@ on:
       - "app/Models/TaskA/**"
       - "database/migrations/2026_11_23_10000*.php"
       - "tests/Feature/TaskA/**"
+      - "resources/views/**"
+      - "resources/css/**"
+      - "resources/js/**"
+      - "routes/web.php"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.js"
       - ".github/workflows/task-a-ci.yml"
   pull_request:
     branches:
@@ -18,6 +25,13 @@ on:
       - "app/Models/TaskA/**"
       - "database/migrations/2026_11_23_10000*.php"
       - "tests/Feature/TaskA/**"
+      - "resources/views/**"
+      - "resources/css/**"
+      - "resources/js/**"
+      - "routes/web.php"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.js"
 
 permissions:
   contents: read
@@ -42,6 +56,20 @@ jobs:
           PYTHONPATH: .
         run: python -m pytest tests/task_a -q
 
+  frontend-build:
+    name: Vite frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Build dashboard assets
+        run: npm run build
+
   php-syntax:
     name: PHP Task A syntax
     runs-on: ubuntu-latest
@@ -50,6 +78,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-      - name: Lint migrations, models, and feature tests
+      - name: Lint routes, migrations, models, and feature tests
         run: |
+          php -l routes/web.php
           find database/migrations app/Models/TaskA tests/Feature/TaskA -type f -name "*.php" -print0 | xargs -0 -n1 php -l
