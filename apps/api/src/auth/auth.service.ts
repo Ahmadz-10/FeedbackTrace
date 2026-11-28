@@ -8,7 +8,7 @@ export class AuthService {
   constructor(private readonly prisma: PrismaService, private readonly jwt: JwtService) {}
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user || !(await compare(password, user.passwordHash))) throw new UnauthorizedException('Invalid email or password.');
+    if (!user || !(await compare(password, user.passwordHash)) || !['STAFF', 'ADMIN'].includes(user.role)) throw new UnauthorizedException('Invalid staff credentials.');
     const accessToken = await this.jwt.signAsync({ sub: user.id, email: user.email, role: user.role });
     return { accessToken, tokenType: 'Bearer', user: { id: user.id, name: user.name, email: user.email, role: user.role } };
   }
