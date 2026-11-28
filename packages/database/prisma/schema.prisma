@@ -1,0 +1,189 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  STUDENT
+  STAFF
+  ADMIN
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  name         String         @db.VarChar(255)
+  email        String         @unique @db.VarChar(255)
+  passwordHash String         @map("password_hash") @db.VarChar(255)
+  role         UserRole       @default(STUDENT)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  batches      FeedbackBatch[]
+  reviews      FindingReview[]
+  @@map("users")
+}
+
+model FeedbackBatch {
+  id             Int              @id @default(autoincrement())
+  batchCode      String           @unique @map("batch_code") @db.VarChar(100)
+  title          String?          @db.VarChar(255)
+  source         String?          @db.VarChar(100)
+  schemaVersion  String           @default("1.0") @map("schema_version") @db.VarChar(20)
+  status         String           @default("pending") @db.VarChar(30)
+  options        Json?
+  aiRequestId    String?          @map("ai_request_id") @db.VarChar(100)
+  aiJobId        String?          @map("ai_job_id") @db.VarChar(100)
+  modelMetadata  Json?            @map("model_metadata")
+  stats          Json?
+  errorMessage   String?          @map("error_message") @db.Text
+  startedAt      DateTime?        @map("started_at")
+  finishedAt     DateTime?        @map("finished_at")
+  createdBy      Int?             @map("created_by")
+  creator        User?            @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  records        FeedbackRecord[]
+  findings       ConsolidatedFinding[]
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  @@index([status])
+  @@map("feedback_batches")
+}
+
+model FeedbackRecord {
+  id             Int                    @id @default(autoincrement())
+  batchId        Int                    @map("batch_id")
+  batch          FeedbackBatch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  feedbackId     String                 @map("feedback_id") @db.VarChar(100)
+  questionId     String                 @map("question_id") @db.VarChar(100)
+  commentText    String                 @map("comment_text") @db.Text
+  normalizedText String?                @map("normalized_text") @db.Text
+  languageHint   String?                @map("language_hint") @db.VarChar(20)
+  submittedAt    DateTime?              @map("submitted_at")
+  qualityFlags   Json?                  @map("quality_flags")
+  analysis       FeedbackAnalysis?
+  aspectMentions FeedbackAspectMention[]
+  evidence       FeedbackEvidence[]
+  findingLinks   FindingFeedback[]
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  @@unique([batchId, feedbackId])
+  @@index([questionId])
+  @@map("feedback_records")
+}
+
+model FeedbackAnalysis {
+  id               Int                    @id @default(autoincrement())
+  feedbackRecordId Int                    @unique @map("feedback_record_id")
+  record           FeedbackRecord         @relation(fields: [feedbackRecordId], references: [id], onDelete: Cascade)
+  status           String                 @db.VarChar(30)
+  provider         String?                @db.VarChar(50)
+  modelId          String?                @map("model_id") @db.VarChar(100)
+  promptVersion    String?                @map("prompt_version") @db.VarChar(50)
+  pipelineVersion  String?                @map("pipeline_version") @db.VarChar(50)
+  schemaVersion    String?                @map("schema_version") @db.VarChar(20)
+  processingMs     Int?                   @map("processing_ms")
+  qualityFlags     Json?                  @map("quality_flags")
+  errorMessage     String?                @map("error_message") @db.Text
+  aspectMentions   FeedbackAspectMention[]
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+  @@index([status])
+  @@map("feedback_analyses")
+}
+
+model FeedbackAspectMention {
+  id                  Int                 @id @default(autoincrement())
+  feedbackAnalysisId  Int                 @map("feedback_analysis_id")
+  analysis            FeedbackAnalysis    @relation(fields: [feedbackAnalysisId], references: [id], onDelete: Cascade)
+  feedbackRecordId    Int                 @map("feedback_record_id")
+  record              FeedbackRecord      @relation(fields: [feedbackRecordId], references: [id], onDelete: Cascade)
+  mentionCode         String?             @map("mention_code") @db.VarChar(100)
+  aspectCode          String              @map("aspect_code") @db.VarChar(80)
+  isProposedAspect    Boolean             @default(false) @map("is_proposed_aspect")
+  proposedAspectLabel String?             @map("proposed_aspect_label") @db.VarChar(255)
+  sentiment           String              @db.VarChar(20)
+  sentimentStrength   String?             @map("sentiment_strength") @db.VarChar(20)
+  reasonType          String              @map("reason_type") @db.VarChar(40)
+  reasonCategory      String              @map("reason_category") @db.VarChar(80)
+  reasonDescription   String?             @map("reason_description") @db.Text
+  evidence            FeedbackEvidence[]
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  @@index([aspectCode, sentiment])
+  @@index([reasonCategory])
+  @@map("feedback_aspect_mentions")
+}
+
+model FeedbackEvidence {
+  id               Int                   @id @default(autoincrement())
+  aspectMentionId  Int                   @map("aspect_mention_id")
+  aspectMention    FeedbackAspectMention @relation(fields: [aspectMentionId], references: [id], onDelete: Cascade)
+  feedbackRecordId Int                   @map("feedback_record_id")
+  record           FeedbackRecord        @relation(fields: [feedbackRecordId], references: [id], onDelete: Cascade)
+  quote            String                @db.Text
+  startChar        Int?                  @map("start_char")
+  endChar          Int?                  @map("end_char")
+  status           String                @default("unverified") @db.VarChar(20)
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  @@index([status])
+  @@map("feedback_evidence")
+}
+
+model ConsolidatedFinding {
+  id                    Int               @id @default(autoincrement())
+  batchId               Int               @map("batch_id")
+  batch                 FeedbackBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  findingCode           String            @unique @map("finding_code") @db.VarChar(100)
+  aspectCode            String            @map("aspect_code") @db.VarChar(80)
+  proposedAspectLabel   String?           @map("proposed_aspect_label") @db.VarChar(255)
+  reasonCategory        String            @map("reason_category") @db.VarChar(80)
+  findingType           String            @map("finding_type") @db.VarChar(30)
+  issueTitle            String            @map("issue_title") @db.VarChar(255)
+  issueSummary          String            @map("issue_summary") @db.Text
+  uniqueFeedbackCount   Int               @default(0) @map("unique_feedback_count")
+  mentionCount          Int               @default(0) @map("mention_count")
+  sentimentDistribution Json              @map("sentiment_distribution")
+  minorityViews         Json?             @map("minority_views")
+  singleFeedbackSupport Boolean           @default(false) @map("single_feedback_support")
+  qualityFlags          Json?             @map("quality_flags")
+  reviewStatus          String            @default("pending_review") @map("review_status") @db.VarChar(30)
+  reviewedAt            DateTime?         @map("reviewed_at")
+  feedbackLinks         FindingFeedback[]
+  reviews               FindingReview[]
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  @@index([batchId, aspectCode])
+  @@index([reviewStatus])
+  @@map("consolidated_findings")
+}
+
+model FindingFeedback {
+  id               Int                 @id @default(autoincrement())
+  findingId        Int                 @map("finding_id")
+  finding          ConsolidatedFinding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  feedbackRecordId Int                 @map("feedback_record_id")
+  feedbackRecord   FeedbackRecord      @relation(fields: [feedbackRecordId], references: [id], onDelete: Cascade)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  @@unique([findingId, feedbackRecordId])
+  @@map("finding_feedback")
+}
+
+model FindingReview {
+  id             Int                @id @default(autoincrement())
+  findingId      Int                @map("finding_id")
+  finding        ConsolidatedFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  reviewerId     Int?               @map("reviewer_id")
+  reviewer       User?              @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  action         String             @db.VarChar(20)
+  previousStatus String             @map("previous_status") @db.VarChar(30)
+  newStatus      String             @map("new_status") @db.VarChar(30)
+  changes        Json?
+  note           String?            @db.Text
+  createdAt      DateTime           @default(now()) @map("created_at")
+  @@index([findingId, createdAt])
+  @@map("finding_reviews")
+}

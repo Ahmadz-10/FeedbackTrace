@@ -1,0 +1,8 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { WorkerModule } from './worker.module.js';
+async function bootstrap(): Promise<void> {
+  await NestFactory.createApplicationContext(WorkerModule);
+  console.log('FeedbackTrace background worker is running.');
+}
+void bootstrap();
