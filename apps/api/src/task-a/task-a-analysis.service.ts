@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { GroqService } from '../shared/groq.service.js';
 import { ASPECT_TAXONOMY, REASON_CATEGORIES } from '@feedbacktrace/contracts';
+import { redactSensitiveText } from './privacy-filter.js';
 
 const extractionSchema = z.object({
   mentions: z.array(z.object({
@@ -33,6 +34,7 @@ export class TaskAAnalysisService {
   constructor(private readonly groq: GroqService) {}
 
   async analyzeComment(commentText: string, options: { allowProposedAspects: boolean; maxAspects: number; languageHint?: string }) {
+    const safeText = redactSensitiveText(commentText);
     const system = [
       'Extract aspect-level student feedback into strict JSON only.',
       'Return {"mentions": []}. Each mention has one aspect, its sentiment, reason category, short reason, and exact evidence quotes.',
@@ -41,7 +43,12 @@ export class TaskAAnalysisService {
       'Allowed aspects: ' + ASPECT_TAXONOMY.map((x) => x.code).join(', '),
       'Allowed reasons: ' + REASON_CATEGORIES.join(', '),
     ].join('\n');
-    const user = JSON.stringify({ comment: commentText, languageHint: options.languageHint ?? 'auto', maxAspects: options.maxAspects, allowProposedAspects: options.allowProposedAspects });
+    const user = JSON.stringify({
+      comment: safeText,
+      languageHint: options.languageHint ?? 'auto',
+      maxAspects: options.maxAspects,
+      allowProposedAspects: options.allowProposedAspects,
+    });
     const response = await this.groq.completeJson(system, user);
     let raw: unknown;
     try { raw = JSON.parse(response.content); } catch { throw new Error('LLM response was not valid JSON.'); }
@@ -58,15 +65,29 @@ export class TaskAAnalysisService {
       const category = reasonSet.has(item.reason_category) ? item.reason_category : 'other_reason';
       const evidence = item.evidence_quotes.slice(0, 3).filter(Boolean).map((quote) => {
         const start = commentText.indexOf(quote);
-        return { quote, startChar: start >= 0 ? start : null, endChar: start >= 0 ? start + quote.length : null, status: start >= 0 ? 'valid' as const : 'invalid' as const };
+        return {
+          quote,
+          startChar: start >= 0 ? start : null,
+          endChar: start >= 0 ? start + quote.length : null,
+          status: start >= 0 && safeText.includes(quote) ? 'valid' as const : 'invalid' as const,
+        };
       });
       mentions.push({
         aspectCode: proposed ? 'other' : item.aspect_code,
         proposedAspectLabel: proposed ? (item.aspect_label ?? item.aspect_code) : undefined,
-        isProposedAspect: proposed, sentiment: item.sentiment, sentimentStrength: item.sentiment_strength,
-        reasonType: item.reason_type, reasonCategory: category, reasonDescription: item.reason_description, evidence,
+        isProposedAspect: proposed,
+        sentiment: item.sentiment,
+        sentimentStrength: item.sentiment_strength,
+        reasonType: item.reason_type,
+        reasonCategory: category,
+        reasonDescription: item.reason_description,
+        evidence,
       });
     }
-    return { mentions, qualityFlags: mentions.some((m) => m.evidence.some((e) => e.status === 'invalid')) ? ['invalid_evidence'] : [], modelId: response.modelId };
+    return {
+      mentions,
+      qualityFlags: mentions.some((m) => m.evidence.some((e) => e.status === 'invalid')) ? ['invalid_evidence'] : [],
+      modelId: response.modelId,
+    };
   }
 }

@@ -1,0 +1,73 @@
+name: FeedbackTrace Node.js CI
+
+on:
+  push:
+    branches:
+      - feature/nodejs-migration
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "tsconfig.base.json"
+      - "docker-compose.yml"
+      - ".env.example"
+      - ".github/workflows/nodejs-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "tsconfig.base.json"
+      - ".github/workflows/nodejs-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Node workspaces, Prisma and tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: feedbacktrace
+          POSTGRES_USER: feedbacktrace
+          POSTGRES_PASSWORD: feedbacktrace
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U feedbacktrace -d feedbacktrace"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://feedbacktrace:feedbacktrace@localhost:5432/feedbacktrace?schema=public
+      JWT_SECRET: ci-only-secret-not-used-outside-tests
+      GROQ_API_KEY: ci-no-live-inference
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.16.0"
+          cache: npm
+      - run: npm install
+      - name: Validate Prisma schema
+        run: npm exec --workspace @feedbacktrace/database prisma validate -- --config prisma.config.ts
+      - name: Build Node.js workspaces
+        run: npm run build
+      - name: Run API unit tests
+        run: npm test
