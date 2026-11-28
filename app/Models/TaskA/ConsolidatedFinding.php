@@ -2,12 +2,15 @@
 
 namespace App\Models\TaskA;
 
+use App\Policies\TaskA\ConsolidatedFindingPolicy;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[UsePolicy(ConsolidatedFindingPolicy::class)]
 class ConsolidatedFinding extends Model
 {
     public const REVIEW_PENDING = 'pending_review';
@@ -15,12 +18,13 @@ class ConsolidatedFinding extends Model
     public const REVIEW_REJECTED = 'rejected';
 
     protected $table = 'consolidated_findings';
-    // review_status and reviewed_at are intentionally excluded from mass assignment.
+
     protected $fillable = [
-        'batch_id', 'finding_code', 'aspect_code', 'reason_category', 'finding_type',
+        'batch_id', 'finding_code', 'aspect_code', 'proposed_aspect_label', 'reason_category', 'finding_type',
         'issue_title', 'issue_summary', 'unique_feedback_count', 'mention_count',
         'sentiment_distribution', 'minority_views', 'single_feedback_support', 'quality_flags',
     ];
+
     protected $casts = [
         'unique_feedback_count' => 'integer',
         'mention_count' => 'integer',

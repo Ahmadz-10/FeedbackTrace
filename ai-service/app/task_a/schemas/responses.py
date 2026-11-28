@@ -66,6 +66,7 @@ class MinorityView(BaseModel):
 class ConsolidatedFinding(BaseModel):
     finding_id: str
     aspect_code: str
+    proposed_aspect_label: str | None = None
     reason_category: str
     finding_type: FindingType
     issue_title: str
@@ -137,6 +138,7 @@ class ApprovedFinding(BaseModel):
     finding_id: str
     batch_id: str
     aspect_code: str
+    proposed_aspect_label: str | None = None
     reason_category: str
     finding_type: FindingType
     issue_title: str
@@ -148,3 +150,52 @@ class ApprovedFinding(BaseModel):
     minority_views: list[MinorityView] = Field(default_factory=list)
     review_status: ReviewStatus = ReviewStatus.APPROVED
     reviewed_at: datetime | None = None
+
+
+class AnalyzeAccepted(BaseModel):
+    """Balasan POST /analyze: pekerjaan diterima dan berjalan di latar belakang."""
+    job_id: str
+    batch_id: str
+    request_id: str | None = None
+    status: JobStatus = JobStatus.PENDING
+    warnings: list[Warning] = Field(default_factory=list)
+
+
+class FindingDetail(BaseModel):
+    job_id: str
+    batch_id: str
+    finding: ConsolidatedFinding
+    mentions: list[AspectMention] = Field(default_factory=list)
+
+
+class AspectCount(BaseModel):
+    aspect_code: str
+    proposed_aspect_label: str | None = None
+    mention_count: int
+    unique_feedback_count: int
+    sentiment_distribution: SentimentDistribution
+
+
+class TopFinding(BaseModel):
+    finding_id: str
+    issue_title: str
+    finding_type: FindingType
+    unique_feedback_count: int
+    mention_count: int
+    single_feedback_support: bool
+    review_status: ReviewStatus
+
+
+class BatchSummary(BaseModel):
+    batch_id: str
+    job_id: str
+    status: JobStatus
+    stats: BatchStats
+    metadata: ModelMetadata | None = None
+    findings_by_type: dict[str, int] = Field(default_factory=dict)
+    single_feedback_findings: int = 0
+    sentiment_distribution: SentimentDistribution = Field(default_factory=SentimentDistribution)
+    aspects: list[AspectCount] = Field(default_factory=list)
+    top_findings: list[TopFinding] = Field(default_factory=list)
+    not_analyzed_by_flag: dict[str, int] = Field(default_factory=dict)
+    warnings_count: int = 0

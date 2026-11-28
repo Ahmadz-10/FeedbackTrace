@@ -24,40 +24,32 @@
 
         <div class="ft-nav-section">
             <div class="ft-nav-heading">WORKSPACE</div>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.overview') ? 'is-active' : '' }}" href="{{ route('dashboard.overview') }}">
-                <span class="ft-nav-icon">▦</span><span>Dashboard</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.overview') ? 'is-active' : '' }}" href="{{ route('dashboard.overview') }}"><span>Dashboard</span>
             </a>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.feedback') ? 'is-active' : '' }}" href="{{ route('dashboard.feedback') }}">
-                <span class="ft-nav-icon">▤</span><span>Feedback</span><span class="ft-nav-badge">2.4k</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.feedback') ? 'is-active' : '' }}" href="{{ route('dashboard.feedback') }}"><span>Feedback</span><span class="ft-nav-badge">2.4k</span>
             </a>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.feedback-review') ? 'is-active' : '' }}" href="{{ route('dashboard.feedback-review') }}">
-                <span class="ft-nav-icon">✓</span><span>Feedback Review</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.feedback-review') ? 'is-active' : '' }}" href="{{ route('dashboard.feedback-review') }}"><span>Feedback Review</span>
             </a>
         </div>
 
         <div class="ft-nav-section">
             <div class="ft-nav-heading">FEEDBACK INTELLIGENCE</div>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.task-a') ? 'is-active' : '' }}" href="{{ route('dashboard.task-a') }}">
-                <span class="ft-nav-icon">◉</span><span>Task A Analysis</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.task-a') ? 'is-active' : '' }}" href="{{ route('dashboard.task-a') }}"><span>Task A Analysis</span>
             </a>
         </div>
         <div class="ft-nav-section">
             <div class="ft-nav-heading">PLATFORM</div>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.ai-overview') ? 'is-active' : '' }}" href="{{ route('dashboard.ai-overview') }}">
-                <span class="ft-nav-icon">✧</span><span>AI Overview</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.ai-overview') ? 'is-active' : '' }}" href="{{ route('dashboard.ai-overview') }}"><span>AI Overview</span>
             </a>
         </div>
 
         <div class="ft-nav-section">
             <div class="ft-nav-heading">SERVICE QUALITY</div>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.task-b') ? 'is-active' : '' }}" href="{{ route('dashboard.task-b') }}">
-                <span class="ft-nav-icon">⌘</span><span>Task B Analysis</span><span class="ft-nav-new">NEW</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.task-b') ? 'is-active' : '' }}" href="{{ route('dashboard.task-b') }}"><span>Task B Analysis</span><span class="ft-nav-new">NEW</span>
             </a>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.documents') ? 'is-active' : '' }}" href="{{ route('dashboard.documents') }}">
-                <span class="ft-nav-icon">▧</span><span>Documents</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.documents') ? 'is-active' : '' }}" href="{{ route('dashboard.documents') }}"><span>Documents</span>
             </a>
-            <a class="ft-nav-link {{ request()->routeIs('dashboard.recommendations') ? 'is-active' : '' }}" href="{{ route('dashboard.recommendations') }}">
-                <span class="ft-nav-icon">✳</span><span>Recommendations</span><span class="ft-nav-count">12</span>
+            <a class="ft-nav-link {{ request()->routeIs('dashboard.recommendations') ? 'is-active' : '' }}" href="{{ route('dashboard.recommendations') }}"><span>Recommendations</span><span class="ft-nav-count">12</span>
             </a>
         </div>
 
