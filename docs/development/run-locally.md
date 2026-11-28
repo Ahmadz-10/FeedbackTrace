@@ -1,8 +1,8 @@
 # Running FeedbackTrace Locally
 
-This guide starts the Laravel application and the Python/FastAPI service side by side. It is written for the current `feature/task-a-feedback-intelligence` branch.
+This guide starts the Laravel application and the Python/FastAPI service side by side. It is written for the current `feature/task-b-decision-intelligence` branch.
 
-> **Current implementation status:** the Laravel project currently has its welcome page and Laravel's `/up` health route. The AI service has `/health`, `/api/v1/task-a/health`, and the shared chat/embedding endpoints. **The Task A `POST /api/v1/task-a/analyze` endpoint and the Laravel-to-AI persistence/UI integration are not implemented yet.** Starting both servers verifies the foundations; it does not mean the full feedback analysis workflow is already accessible from the browser.
+> **Current implementation status:** the Laravel project currently has its welcome page and Laravel's `/up` health route. The AI service has `/health`, `/api/v1/task-b/health`, the Task B IPA calculation endpoint, and the shared chat/embedding endpoints. **The Laravel-to-AI persistence/UI integration for Task B is still under active development.** Starting both servers verifies the foundations and allows testing the Task B Decision Intelligence endpoints via Swagger UI.
 
 ## 1. Prerequisites
 
@@ -10,7 +10,7 @@ Install these tools before starting:
 
 | Tool | Requirement / purpose |
 |---|---|
-| Git | Clone and switch to the Task A branch |
+| Git | Clone and switch to the Task B branch |
 | PHP | PHP 8.3 or later, with the PDO SQLite extension for the default database |
 | Composer | Install Laravel dependencies |
 | Node.js and npm | Install and run Vite assets |
@@ -21,7 +21,7 @@ Install these tools before starting:
 
 For a shared development database, MySQL is also supported by the Laravel configuration. The steps below use SQLite so a new developer can start without setting up a database server.
 
-## 2. Get the Task A branch
+## 2. Get the Task B branch
 
 Open PowerShell (Windows) or a terminal (macOS/Linux).
 
@@ -31,16 +31,16 @@ For an existing clone:
 cd C:\path\to\FeedbackTrace
 git status
 git fetch origin
-git switch feature/task-a-feedback-intelligence
-git pull origin feature/task-a-feedback-intelligence
+git switch feature/task-b-decision-intelligence
+git pull origin feature/task-b-decision-intelligence
 ```
 
 For a fresh clone:
 
 ```powershell
-git clone https://github.com/Ahmadz-10/FeedbackTrace.git
+git clone [https://github.com/Ahmadz-10/FeedbackTrace.git](https://github.com/Ahmadz-10/FeedbackTrace.git)
 cd FeedbackTrace
-git switch feature/task-a-feedback-intelligence
+git switch feature/task-b-decision-intelligence
 ```
 
 Before switching branches, commit or stash any uncommitted work shown by `git status`.
@@ -80,7 +80,7 @@ php artisan migrate
 php artisan migrate:status
 ```
 
-This creates the Laravel tables and the Task A feedback batch, feedback record, analysis, aspect mention, evidence, finding, finding-feedback, and finding-review tables.
+This creates the Laravel base tables and the feedback/decision intelligence schema tables.
 
 **Important:** do not run `php artisan migrate:fresh` on a shared or existing database. It drops existing tables and data. Use it only on a disposable local database that you are prepared to reset.
 
@@ -106,7 +106,7 @@ Open:
 - Laravel app: http://127.0.0.1:8000
 - Laravel health check: http://127.0.0.1:8000/up
 
-At this stage, the root URL displays the Laravel welcome page. The Task A feedback screens and routes have not yet been connected.
+At this stage, the root URL displays the Laravel welcome page.
 
 ## 4. Configure and start the Python AI service
 
@@ -144,14 +144,14 @@ EMBEDDING_MODEL=intfloat/multilingual-e5-base
 EMBEDDING_DEVICE=cpu
 EMBEDDING_BATCH_SIZE=16
 SERVICE_API_KEY=replace_with_a_long_random_secret
-CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+CORS_ORIGINS=[http://127.0.0.1:8000](http://127.0.0.1:8000),http://localhost:8000
 ```
 
 - Keep the Groq key private. Never commit `ai-service/.env`.
-- A Groq key is needed for the shared chat endpoint and future live Task A LLM analysis.
-- `SERVICE_API_KEY` is optional for local testing. When it is set, protected shared endpoints require the `X-Service-Key` request header. The two health endpoints remain public.
+- A Groq key is needed for the shared chat endpoint and LLM-assisted reasoning.
+- `SERVICE_API_KEY` is optional for local testing. When it is set, protected shared endpoints require the `X-Service-Key` request header. The health endpoints remain public.
 - The embedding model weights are downloaded on first use of the embeddings endpoint. The initial download can be large.
-- The current Task A processing classes default to CPU-safe local setup and use shared Groq configuration. There is not yet an HTTP analyze route to invoke them.
+- The Task B Decision Intelligence (IPA) services compute Importance-Performance Analysis metrics and quadrant classifications locally.
 
 ### Start FastAPI
 
@@ -165,34 +165,35 @@ Open:
 
 - FastAPI interactive docs: http://127.0.0.1:8001/docs
 - AI service health: http://127.0.0.1:8001/health
-- Task A module health: http://127.0.0.1:8001/api/v1/task-a/health
+- Task B module health: http://127.0.0.1:8001/api/v1/task-b/health
 
 ## 5. Confirm the services are running
 
 With both servers running, use a separate PowerShell window:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8000/up
-Invoke-RestMethod http://127.0.0.1:8001/health
-Invoke-RestMethod http://127.0.0.1:8001/api/v1/task-a/health
+Invoke-RestMethod [http://127.0.0.1:8000/up](http://127.0.0.1:8000/up)
+Invoke-RestMethod [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
+Invoke-RestMethod [http://127.0.0.1:8001/api/v1/task-b/health](http://127.0.0.1:8001/api/v1/task-b/health)
 ```
 
 Expected key values:
 
 - Laravel `/up`: successful health response (HTTP 200).
 - AI service `/health`: `status = ok`.
-- Task A `/api/v1/task-a/health`: `status = ok`, `module = task_a`.
+- Task B `/api/v1/task-b/health`: `status = ok`, `module = task_b`.
 
 The current available AI endpoints are:
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | Shared AI service health |
-| GET | `/api/v1/task-a/health` | Task A module health |
+| GET | `/api/v1/task-b/health` | Task B module health |
+| POST | `/api/v1/task-b/calculate-ipa` | Compute IPA scores and quadrant classifications |
 | POST | `/api/v1/shared/chat` | Shared Groq chat request |
 | POST | `/api/v1/shared/embeddings` | Shared multilingual embedding request |
 
-The shared POST endpoints are protected only when a non-empty `SERVICE_API_KEY` is configured. Use the interactive docs at `/docs` to inspect request schemas. **There is currently no `POST /api/v1/task-a/analyze` endpoint.**
+The shared POST endpoints are protected only when a non-empty `SERVICE_API_KEY` is configured. Use the interactive docs at `/docs` to inspect request schemas and test Task B endpoints.
 
 ## 6. Run tests
 
@@ -204,10 +205,10 @@ From `ai-service/` with the virtual environment activated:
 python -m pytest -q
 ```
 
-To run only Task A tests:
+To run only Task B tests:
 
 ```powershell
-python -m pytest tests/task_a -q
+python -m pytest tests/task_b -q
 ```
 
 Live Groq tests are opt-in and are skipped unless `RUN_LIVE_LLM_TESTS=1` and a valid `GROQ_API_KEY` are set.
@@ -218,12 +219,6 @@ From the repository root:
 
 ```powershell
 php artisan test
-```
-
-To run the Task A database feature test only:
-
-```powershell
-php artisan test tests/Feature/TaskA/FeedbackSchemaTest.php
 ```
 
 If the Laravel tests cannot start, confirm that `composer install` completed and the `vendor/` directory exists.
