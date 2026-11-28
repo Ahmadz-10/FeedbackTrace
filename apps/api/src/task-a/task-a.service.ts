@@ -427,6 +427,6 @@ export class TaskAService {
     const analysed = results.filter((item) => item.status === 'analyzed').length;
     const skipped = results.filter((item) => item.status === 'skipped').length;
     const failed = results.filter((item) => item.status === 'failed').length;
-    return { batchId, status: failed === results.length ? 'failed' : failed > 0 ? 'partially_completed' : 'completed', totalFeedbacks: results.length, analyzed, skipped, failed, findings: groups.size };
+    return { batchId, status: failed === results.length ? 'failed' : failed > 0 ? 'partially_completed' : 'completed', totalFeedbacks: results.length, analyzed: analysed, skipped, failed, findings: groups.size };
   }
 }
