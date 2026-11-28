@@ -13,7 +13,7 @@ type Mention = {
 type FeedbackRecord = {
   id: number; feedbackId: string; questionId: string; commentText: string;
   submittedAt: string | null; qualityFlags: string[] | null;
-  analysis: { status: string; qualityFlags: string[] | null; modelId: string | null; aspectMentions: Mention[] } | null;
+  analysis: { status: string; qualityFlags: string[] | null; modelId: string | null; errorMessage: string | null; aspectMentions: Mention[] } | null;
 };
 type BatchDetails = Batch & { records: FeedbackRecord[]; findings: Finding[] };
 type Finding = {
