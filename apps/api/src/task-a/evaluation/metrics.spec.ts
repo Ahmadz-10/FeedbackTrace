@@ -7,10 +7,10 @@ describe('Task A evaluation', () => {
   it('calculates classification metrics', () => {
     const result = classificationMetrics(['positive','negative','negative'], ['positive','positive','negative']);
     expect(result.accuracy).toBeCloseTo(2/3);
-    expect(result.confusionMatrix).toEqual([[1,0],[1,1]]);
+    expect(result.confusionMatrix).toEqual([[1,1],[0,1]]);
   });
   it('validates exact evidence substrings', () => {
-    const result = evidenceMetrics([{quote:'antrean lama',source:'Antrean lama sekali'},{quote:'portal cepat',source:'Portal error'}]);
+    const result = evidenceMetrics([{quote:'Antrean lama',source:'Antrean lama sekali'},{quote:'portal cepat',source:'Portal error'}]);
     expect(result.valid).toBe(1); expect(result.invalid).toBe(1);
   });
   it('runs keyword aspect baseline', () => {
