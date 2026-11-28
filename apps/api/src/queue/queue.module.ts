@@ -7,7 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     useFactory: (config: ConfigService) => ({
       connection: {
         host: config.get<string>('REDIS_HOST', '127.0.0.1'),
-        port: config.get<number>('REDIS_PORT', 6379),
+        port: Number(config.get<string>('REDIS_PORT', '6379')),
         password: config.get<string>('REDIS_PASSWORD') || undefined,
         maxRetriesPerRequest: null,
       },
