@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: feedbacktrace-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: feedbacktrace
+      POSTGRES_USER: feedbacktrace
+      POSTGRES_PASSWORD: feedbacktrace
+    ports:
+      - "5432:5432"
+    volumes:
+      - feedbacktrace-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedbacktrace -d feedbacktrace"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  redis:
+    image: redis:7-alpine
+    container_name: feedbacktrace-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - feedbacktrace-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+volumes:
+  feedbacktrace-postgres:
+  feedbacktrace-redis:
