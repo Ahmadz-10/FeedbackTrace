@@ -295,7 +295,7 @@ export default function HomePage() {
               <label>Performance (1–5)<input type="number" min="1" max="5" step="0.1" value={performance} onChange={(e) => setPerformance(e.target.value)} /></label>
               <button className="primary" disabled={loading}>Calculate IPA</button>
             </form>
-            {ipaResult && <pre className="result-json">{JSON.stringify(ipaResult, null, 2)}</pre>}
+            {ipaResult !== null && <pre className="result-json">{JSON.stringify(ipaResult, null, 2)}</pre>}
           </Panel>
         </>}
       </section>
