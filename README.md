@@ -2,7 +2,7 @@
 
 University feedback intelligence and service-quality decision support.
 
-This branch introduces the Node.js / TypeScript implementation of FeedbackTrace. The existing Laravel/Python application is retained in the repository as a reference until the Node edition passes migration checks and is accepted for cutover.
+This branch is the Node.js / TypeScript implementation of FeedbackTrace. It is intended to be the active development and demonstration branch; it does not contain the Laravel or Python runtime.
 
 ## Stack
 
@@ -19,7 +19,7 @@ Node.js 22.16+ is required. NestJS 11 is used in this migration snapshot to keep
 ## Workspaces
 
 - apps/web — staff dashboard, CSV upload and finding review
-- apps/api — NestJS API, auth, Task A and Task B services
+- apps/api — NestJS API, authentication, Task A and Task B services
 - apps/api worker entry point — BullMQ processing
 - packages/contracts — shared request schemas, enums and taxonomy
 - packages/database — Prisma schema and PostgreSQL migrations
@@ -27,7 +27,7 @@ Node.js 22.16+ is required. NestJS 11 is used in this migration snapshot to keep
 ## Quick start (PowerShell)
 
 1. Install Node.js 22.16 or later and Docker Desktop.
-2. Copy the root environment template and edit its values:
+2. Copy the root environment template:
 
     Copy-Item .env.example .env
 
@@ -46,7 +46,7 @@ Node.js 22.16+ is required. NestJS 11 is used in this migration snapshot to keep
 
     npm run db:seed:staff
 
-7. Start the API, worker and web UI in three PowerShell terminals:
+7. Start the API, worker and web UI in three separate PowerShell terminals:
 
     npm run dev:api
 
@@ -55,6 +55,8 @@ Node.js 22.16+ is required. NestJS 11 is used in this migration snapshot to keep
     npm run dev:web
 
 Open http://localhost:3000. API health is at http://localhost:8001/health.
+
+For the full setup guide, see [docs/nodejs/run-locally.md](docs/nodejs/run-locally.md).
 
 ## Main API routes
 
@@ -80,7 +82,7 @@ The Node implementation contains request validation for approved Task A findings
 
 Task A evaluation utilities are in apps/api/src/task-a/evaluation: keyword aspect baseline, TF-IDF logistic-regression sentiment baseline, precision/recall/Macro-F1/confusion matrix, evidence validity, pairwise consolidation metrics, ablation comparison and error-case summary.
 
-A manually annotated dataset and a documented train/dev/test split are still required before reporting research-quality performance numbers. No benchmark metrics are claimed by this migration branch yet.
+A manually annotated dataset and a documented train/dev/test split are still required before reporting research-quality performance numbers. No benchmark metrics are claimed by this branch yet.
 
 ## Build and tests
 
@@ -89,9 +91,10 @@ A manually annotated dataset and a documented train/dev/test split are still req
 
 The build compiles shared contracts and database package before API and web. Tests currently cover IPA rules, evaluation metrics and privacy filtering. A local PostgreSQL + Redis integration run is still required before production cutover.
 
-## Migration policy
+## Branch policy
 
-- main remains the Laravel/Python application while migration is reviewed.
-- feature/nodejs-migration contains the Node.js edition.
-- Do not delete the legacy application until API contracts, database migration, model parity, evaluation results and demo scenarios have been verified.
+- main retains the original Laravel/Python implementation until the Node.js migration is accepted.
+- feature/nodejs-migration contains only the Node.js application and its supporting project files.
+- The previous Laravel/Python source remains recoverable from main and Git history; it is not needed to run this branch.
+- Do not merge this branch into main until API contracts, database migration, model parity, evaluation results and demo scenarios have been verified.
 - Never commit .env, credentials, personal student data or private university documents.

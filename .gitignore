@@ -1,35 +1,23 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node.js dependencies and build output
+node_modules/
+**/node_modules/
+apps/web/.next/
+apps/web/out/
+apps/api/dist/
+packages/*/dist/
+packages/database/src/generated/
+coverage/
+
+# Logs and operating-system files
 *.log
 .DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.codex
-/.cursor/
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
-/apps/*/node_modules
-/packages/*/node_modules
-/apps/web/.next
-/apps/web/out
-/apps/api/dist
-/packages/*/dist
-/packages/database/src/generated
-/coverage
-/public/build
-/public/fonts-manifest.dev.json
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-_ide_helper.php
-Homestead.json
-Homestead.yaml
 Thumbs.db
+
+# Editor settings
+.idea/
+.vscode/
