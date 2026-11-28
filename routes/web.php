@@ -1,12 +1,12 @@
 <?php
 
-use App\\Models\\TaskA\\ConsolidatedFinding;
-use App\\Models\\TaskA\\FeedbackAnalysis;
-use App\\Models\\TaskA\\FeedbackAspectMention;
-use App\\Models\\TaskA\\FeedbackBatch;
-use App\\Models\\TaskA\\FeedbackRecord;
-use Illuminate\\Support\\Facades\\Route;
-use Illuminate\\Support\\Facades\\Schema;
+use App\Models\TaskA\ConsolidatedFinding;
+use App\Models\TaskA\FeedbackAnalysis;
+use App\Models\TaskA\FeedbackAspectMention;
+use App\Models\TaskA\FeedbackBatch;
+use App\Models\TaskA\FeedbackRecord;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 Route::get('/', function () {
     try {
@@ -17,7 +17,7 @@ Route::get('/', function () {
             'feedback_aspect_mentions',
             'consolidated_findings',
         ])->every(fn (string $table) => Schema::hasTable($table));
-    } catch (\\Throwable $exception) {
+    } catch (Throwable $exception) {
         report($exception);
         $databaseReady = false;
     }
@@ -71,12 +71,8 @@ Route::get('/', function () {
         }
 
         $difference = 100 - array_sum($sentimentPercentages);
-        $largestSentiment = array_key_first(array_slice(
-            $sentimentCounts,
-            array_search(max($sentimentCounts), $sentimentCounts, true),
-            1,
-            true
-        )) ?? 'positive';
+        arsort($sentimentCounts);
+        $largestSentiment = array_key_first($sentimentCounts) ?? 'positive';
         $sentimentPercentages[$largestSentiment] = max(
             0,
             $sentimentPercentages[$largestSentiment] + $difference
