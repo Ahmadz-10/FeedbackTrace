@@ -23,7 +23,8 @@
     "build:api": "npm run build --workspace @feedbacktrace/api",
     "build:web": "npm run build --workspace @feedbacktrace/web",
     "build": "npm run build:contracts && npm run db:generate && npm run build:database && npm run build:api && npm run build:web",
-    "test": "npm run test --workspace @feedbacktrace/api"
+    "test": "npm run test --workspace @feedbacktrace/api",
+    "db:deploy": "npm run db:deploy --workspace @feedbacktrace/database"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
