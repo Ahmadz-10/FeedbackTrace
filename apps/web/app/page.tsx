@@ -1,14 +1,29 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, getToken, setToken } from '@/lib/api';
 
 type User = { id: number; name: string; email: string; role: string };
 type Batch = { id: number; batchCode: string; title: string | null; status: string; _count: { records: number; findings: number } };
+type Evidence = { quote: string; startChar: number | null; endChar: number | null; status: string };
+type Mention = {
+  aspectCode: string; proposedAspectLabel: string | null; sentiment: string;
+  reasonCategory: string; reasonType: string; reasonDescription: string | null; evidence: Evidence[];
+};
+type FeedbackRecord = {
+  id: number; feedbackId: string; questionId: string; commentText: string;
+  submittedAt: string | null; qualityFlags: string[] | null;
+  analysis: { status: string; qualityFlags: string[] | null; modelId: string | null; aspectMentions: Mention[] } | null;
+};
+type BatchDetails = Batch & { records: FeedbackRecord[]; findings: Finding[] };
 type Finding = {
   id: number; findingCode: string; issueTitle: string; issueSummary: string; aspectCode: string;
   findingType: string; reviewStatus: string; uniqueFeedbackCount: number; mentionCount: number;
-  sentimentDistribution: Record<string, number>;
+  sentimentDistribution: Record<string, number>; minorityViews: Array<{ feedback_id?: string; sentiment?: string; summary?: string }>;
+};
+type FindingDetails = Finding & {
+  feedbackLinks: Array<{ feedbackRecord: FeedbackRecord }>;
+  reviews: Array<{ action: string; note: string | null; createdAt: string; reviewer: { name: string } | null }>;
 };
 
 export default function HomePage() {
@@ -16,10 +31,14 @@ export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [page, setPage] = useState<'overview' | 'batches' | 'findings' | 'ipa'>('overview');
+  const [page, setPage] = useState<'overview' | 'batches' | 'batch-detail' | 'findings' | 'ipa'>('overview');
   const [batches, setBatches] = useState<Batch[]>([]);
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<BatchDetails | null>(null);
+  const [selectedFinding, setSelectedFinding] = useState<FindingDetails | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editSummary, setEditSummary] = useState('');
+  const [editNote, setEditNote] = useState('');
   const [csv, setCsv] = useState<File | null>(null);
   const [batchTitle, setBatchTitle] = useState('');
   const [importance, setImportance] = useState('4');
@@ -78,7 +97,32 @@ export default function HomePage() {
   }
 
   function logout() {
-    setToken(null); setTokenState(null); setUser(null); setBatches([]); setFindings([]);
+    setToken(null); setTokenState(null); setUser(null);
+    setBatches([]); setFindings([]); setSelectedBatch(null); setSelectedFinding(null);
+  }
+
+  async function openBatch(batch: Batch) {
+    setLoading(true); setError(''); setMessage('');
+    try {
+      const detail = await api<BatchDetails>('/api/v1/task-a/batches/' + batch.id + '/results');
+      setSelectedBatch(detail);
+      setPage('batch-detail');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to load batch details.');
+    } finally { setLoading(false); }
+  }
+
+  async function openFinding(finding: Finding) {
+    setSelectedFinding(null); setLoading(true); setError(''); setMessage('');
+    try {
+      const detail = await api<FindingDetails>('/api/v1/task-a/findings/' + encodeURIComponent(finding.findingCode));
+      setSelectedFinding(detail);
+      setEditTitle(detail.issueTitle);
+      setEditSummary(detail.issueSummary);
+      setEditNote('');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to load finding details.');
+    } finally { setLoading(false); }
   }
 
   async function importBatch(event: FormEvent) {
@@ -99,14 +143,17 @@ export default function HomePage() {
     } finally { setLoading(false); }
   }
 
-  async function review(action: 'approve' | 'reject') {
+  async function review(action: 'approve' | 'reject' | 'edit') {
     if (!selectedFinding) return;
     setLoading(true); setError(''); setMessage('');
     try {
+      const body = action === 'edit'
+        ? { action, issueTitle: editTitle, issueSummary: editSummary, note: editNote }
+        : { action, note: editNote || 'Reviewed in FeedbackTrace Node.js workspace.' };
       await api('/api/v1/task-a/findings/' + encodeURIComponent(selectedFinding.findingCode) + '/review', {
-        method: 'POST', body: JSON.stringify({ action, note: 'Reviewed in FeedbackTrace Node.js workspace.' }),
+        method: 'POST', body: JSON.stringify(body),
       });
-      setMessage('Finding ' + selectedFinding.findingCode + ' marked ' + action + '.');
+      setMessage('Finding ' + selectedFinding.findingCode + ' updated: ' + action + '.');
       setSelectedFinding(null);
       await loadWorkspace();
     } catch (reason) {
@@ -139,18 +186,23 @@ export default function HomePage() {
     </form></main>;
   }
 
+  const pageTitle = page === 'ipa' ? 'Task B · IPA'
+    : page === 'batch-detail' ? 'Feedback batch detail'
+    : page[0].toUpperCase() + page.slice(1);
+
   return <div className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="#"><span className="brand-mark">F</span><span><b>FeedbackTrace</b><small>INSIGHT & DECISION SUPPORT</small></span></a>
       <p className="nav-label">WORKSPACE</p>
       {(['overview', 'batches', 'findings', 'ipa'] as const).map((item) =>
-        <button key={item} className={'nav-item ' + (page === item ? 'active' : '')} onClick={() => { setPage(item); setSelectedFinding(null); }}>
+        <button key={item} className={'nav-item ' + (page === item || (item === 'batches' && page === 'batch-detail') ? 'active' : '')}
+          onClick={() => { setPage(item); setSelectedFinding(null); setSelectedBatch(null); }}>
           {({ overview: 'Overview', batches: 'Feedback batches', findings: 'Finding review', ipa: 'Task B · IPA' } as const)[item]}
         </button>)}
       <div className="sidebar-bottom"><div><b>{user.name}</b><small>{user.role}</small></div><button className="quiet" onClick={logout}>Sign out</button></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div><span>Workspace</span><b>/</b>{page === 'ipa' ? 'Task B · IPA' : page[0].toUpperCase() + page.slice(1)}</div><span className="user-label">{user.email}</span></header>
+      <header className="topbar"><div><span>Workspace</span><b>/</b>{pageTitle}</div><span className="user-label">{user.email}</span></header>
       <section className="content">
         {message && <div className="alert success">{message}</div>}
         {error && <div className="alert error">{error}</div>}
@@ -162,8 +214,8 @@ export default function HomePage() {
             <Stat label="Consolidated findings" value={stats.findings} />
             <Stat label="Awaiting staff review" value={stats.pending} />
           </div>
-          <Panel title="Latest batches"><BatchTable batches={batches.slice(0, 6)} /></Panel>
-          <Panel title="Recent findings"><FindingTable findings={findings.slice(0, 6)} onSelect={setSelectedFinding} /></Panel>
+          <Panel title="Latest batches"><BatchTable batches={batches.slice(0, 6)} onSelect={openBatch} /></Panel>
+          <Panel title="Recent findings"><FindingTable findings={findings.slice(0, 6)} onSelect={openFinding} /></Panel>
         </>}
         {page === 'batches' && <>
           <div className="page-heading"><div><p className="eyebrow">TASK A · INPUT & PROCESSING</p><h1>Feedback batches</h1><p className="muted">Upload a CSV and queue NLP analysis in the background.</p></div></div>
@@ -175,20 +227,64 @@ export default function HomePage() {
               <button className="primary" disabled={loading || !csv}>{loading ? 'Importing…' : 'Import and queue analysis'}</button>
             </form>
           </Panel>
-          <Panel title="All batches"><BatchTable batches={batches} /></Panel>
+          <Panel title="All batches"><BatchTable batches={batches} onSelect={openBatch} /></Panel>
+        </>}
+        {page === 'batch-detail' && selectedBatch && <>
+          <div className="page-heading">
+            <div><p className="eyebrow">TASK A · {selectedBatch.batchCode}</p><h1>{selectedBatch.title || selectedBatch.batchCode}</h1><p className="muted">Batch status: {selectedBatch.status}</p></div>
+            <button onClick={() => { setSelectedBatch(null); setPage('batches'); }}>Back to batches</button>
+          </div>
+          <div className="stat-grid">
+            <Stat label="Feedback records" value={selectedBatch.records.length} />
+            <Stat label="Consolidated findings" value={selectedBatch.findings.length} />
+            <Stat label="Analyzed" value={selectedBatch.records.filter((record) => record.analysis?.status === 'analyzed').length} />
+            <Stat label="Failed / skipped" value={selectedBatch.records.filter((record) => ['failed', 'skipped'].includes(record.analysis?.status ?? '')).length} />
+          </div>
+          <Panel title="Original feedback and analysis evidence">
+            {selectedBatch.records.map((record) => <article className="feedback-detail" key={record.id}>
+              <div className="evidence-heading"><b>{record.feedbackId}</b><span>{record.questionId}</span><span className={'status ' + (record.analysis?.status ?? 'pending')}>{record.analysis?.status ?? 'pending'}</span></div>
+              <p className="source-comment">{record.commentText || '[Empty comment]'}</p>
+              {record.analysis?.errorMessage && <p className="muted">{record.analysis.errorMessage}</p>}
+              {record.analysis?.aspectMentions.map((mention, index) => <div className="mention-detail" key={record.id + '-' + index}>
+                <div className="evidence-heading"><b>{mention.proposedAspectLabel || mention.aspectCode}</b><span>{mention.sentiment}</span><span>{mention.reasonCategory}</span></div>
+                <p className="muted">{mention.reasonDescription || 'No reason description returned.'}</p>
+                {mention.evidence.map((item, evidenceIndex) => <blockquote className="evidence-quote" key={evidenceIndex}>
+                  “{item.quote}” <small>{item.status} · {item.startChar ?? '—'}–{item.endChar ?? '—'}</small>
+                </blockquote>)}
+              </div>)}
+            </article>)}
+          </Panel>
         </>}
         {page === 'findings' && <>
           <div className="page-heading"><div><p className="eyebrow">TASK A · HUMAN VALIDATION</p><h1>Finding review</h1><p className="muted">Only approved findings are eligible for the Task B handoff.</p></div></div>
           {selectedFinding && <Panel title={selectedFinding.findingCode}>
             <h3>{selectedFinding.issueTitle}</h3><p>{selectedFinding.issueSummary}</p>
             <p className="muted">Aspect: {selectedFinding.aspectCode} · Support: {selectedFinding.uniqueFeedbackCount} feedback / {selectedFinding.mentionCount} mentions</p>
-            {selectedFinding.reviewStatus === 'pending_review' ? <div className="actions">
-              <button className="primary" disabled={loading} onClick={() => review('approve')}>Approve</button>
-              <button className="danger" disabled={loading} onClick={() => review('reject')}>Reject</button>
-              <button onClick={() => setSelectedFinding(null)}>Close</button>
-            </div> : <p className="muted">This finding has already been reviewed.</p>}
+            <div className="evidence-heading">{Object.entries(selectedFinding.sentimentDistribution ?? {}).map(([label, count]) => <span key={label}>{label}: {count}</span>)}</div>
+            {selectedFinding.minorityViews?.length > 0 && <div className="detail-list"><b>Minority views</b>{selectedFinding.minorityViews.map((view, index) => <p key={index} className="muted">{view.feedback_id || 'Feedback'} · {view.sentiment || 'different view'} · {view.summary || 'Alternative view retained.'}</p>)}</div>}
+            <div className="detail-list"><b>Supporting original feedback</b>
+              {selectedFinding.feedbackLinks.map((link) => <article className="feedback-detail" key={link.feedbackRecord.id}>
+                <div className="evidence-heading"><b>{link.feedbackRecord.feedbackId}</b><span>{link.feedbackRecord.questionId}</span></div>
+                <p className="source-comment">{link.feedbackRecord.commentText}</p>
+                {link.feedbackRecord.analysis?.aspectMentions.flatMap((mention) => mention.evidence).map((item, index) =>
+                  <blockquote className="evidence-quote" key={index}>“{item.quote}” <small>{item.status}</small></blockquote>)}
+              </article>)}
+            </div>
+            {selectedFinding.reviewStatus === 'pending_review' ? <>
+              <div className="import-form">
+                <label>Edited issue title<input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={255} /></label>
+                <label>Edited issue summary<textarea value={editSummary} onChange={(e) => setEditSummary(e.target.value)} rows={3} maxLength={2000} /></label>
+                <label>Staff note<textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} rows={2} maxLength={2000} /></label>
+              </div>
+              <div className="actions">
+                <button className="primary" disabled={loading || !editTitle.trim() || !editSummary.trim()} onClick={() => review('edit')}>Save edits</button>
+                <button className="primary" disabled={loading} onClick={() => review('approve')}>Approve finding</button>
+                <button className="danger" disabled={loading} onClick={() => review('reject')}>Reject finding</button>
+                <button onClick={() => setSelectedFinding(null)}>Close</button>
+              </div>
+            </> : <p className="muted">This finding has already been reviewed. Review history: {selectedFinding.reviews.map((item) => item.action + ' by ' + (item.reviewer?.name ?? 'unknown reviewer')).join(' · ') || 'No actions recorded.'}</p>}
           </Panel>}
-          <Panel title="Consolidated findings"><FindingTable findings={findings} onSelect={setSelectedFinding} /></Panel>
+          <Panel title="Consolidated findings"><FindingTable findings={findings} onSelect={openFinding} /></Panel>
         </>}
         {page === 'ipa' && <>
           <div className="page-heading"><div><p className="eyebrow">TASK B · DECISION INTELLIGENCE</p><h1>Importance–Performance Analysis</h1><p className="muted">Calculate mean importance and performance scores by service aspect.</p></div></div>
@@ -215,10 +311,10 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   return <section className="panel"><header><h2>{title}</h2></header><div className="panel-content">{children}</div></section>;
 }
 
-function BatchTable({ batches }: { batches: Batch[] }) {
+function BatchTable({ batches, onSelect }: { batches: Batch[]; onSelect: (batch: Batch) => void }) {
   if (!batches.length) return <p className="muted">No batches have been imported yet.</p>;
-  return <div className="table-wrap"><table><thead><tr><th>Batch</th><th>Records</th><th>Findings</th><th>Status</th></tr></thead><tbody>
-    {batches.map((batch) => <tr key={batch.id}><td><b>{batch.title || batch.batchCode}</b><small>{batch.batchCode}</small></td><td>{batch._count.records}</td><td>{batch._count.findings}</td><td><span className={'status ' + batch.status}>{batch.status.replaceAll('_', ' ')}</span></td></tr>)}
+  return <div className="table-wrap"><table><thead><tr><th>Batch</th><th>Records</th><th>Findings</th><th>Status</th><th></th></tr></thead><tbody>
+    {batches.map((batch) => <tr key={batch.id}><td><b>{batch.title || batch.batchCode}</b><small>{batch.batchCode}</small></td><td>{batch._count.records}</td><td>{batch._count.findings}</td><td><span className={'status ' + batch.status}>{batch.status.replaceAll('_', ' ')}</span></td><td><button className="link-button" onClick={() => onSelect(batch)}>Open batch</button></td></tr>)}
   </tbody></table></div>;
 }
 
