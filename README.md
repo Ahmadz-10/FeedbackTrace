@@ -2,7 +2,7 @@
 
 University feedback intelligence and service-quality decision support.
 
-This branch is the Node.js / TypeScript implementation of FeedbackTrace. It is intended to be the active development and demonstration branch; it does not contain the Laravel or Python runtime.
+The `main` branch is the active Node.js / TypeScript implementation used for development and demonstration. The original Laravel/Python implementation is preserved separately.
 
 ## Stack
 
@@ -91,10 +91,13 @@ A manually annotated dataset and a documented train/dev/test split are still req
 
 The build compiles shared contracts and database package before API and web. Tests currently cover IPA rules, evaluation metrics and privacy filtering. A local PostgreSQL + Redis integration run is still required before production cutover.
 
-## Branch policy
+## Branch workflow
 
-- main retains the original Laravel/Python implementation until the Node.js migration is accepted.
-- feature/nodejs-migration contains only the Node.js application and its supporting project files.
-- The previous Laravel/Python source remains recoverable from main and Git history; it is not needed to run this branch.
-- Do not merge this branch into main until API contracts, database migration, model parity, evaluation results and demo scenarios have been verified.
-- Never commit .env, credentials, personal student data or private university documents.
+- `main` is the Node.js baseline and should receive completed Node.js work.
+- `feature/task-a-feedback-intelligence-nodejs` is the Node.js Task A development branch.
+- `feature/task-b-decision-intelligence-nodejs` is the Node.js Task B development branch.
+- `legacy/laravel-python` preserves the original Laravel/Python implementation.
+- The existing `feature/task-a-feedback-intelligence` and `feature/task-b-decision-intelligence` branches are preserved unchanged as historical Laravel/Python task branches. Do not use them as the base for new Node.js work.
+- `feature/nodejs-migration` is retained as the migration snapshot; new Node.js development should start from `main` or the Node.js Task A/Task B branches.
+
+Never commit .env, credentials, personal student data or private university documents.
