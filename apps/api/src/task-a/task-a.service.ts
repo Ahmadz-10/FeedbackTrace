@@ -28,7 +28,17 @@ export class TaskAService {
   async importCsv(buffer: Buffer, filename: string, body: ImportBatchDto, userId: number) {
     let rows: CsvRow[];
     try {
-      rows = parse(buffer, { bom: true, columns: true, skip_empty_lines: true, trim: true }) as CsvRow[];
+      rows = parse(buffer, {
+        bom: true,
+        columns: (header: string[]) => {
+          const names = header.map((name) => name.trim().toLowerCase());
+          const required = ['feedback_id', 'question_id', 'comment_text'];
+          if (new Set(names).size !== names.length) throw new Error('CSV headers must be unique.');
+          if (required.some((name) => !names.includes(name))) throw new Error('Missing one or more required CSV headers.');
+          return names;
+        },
+        skip_empty_lines: true,
+      }) as CsvRow[];
     } catch {
       throw new BadRequestException('The uploaded CSV could not be parsed.');
     }
@@ -61,7 +71,7 @@ export class TaskAService {
     });
 
     const allowProposedAspects = body.allowProposedAspects === true || String(body.allowProposedAspects) === 'true';
-    const maxAspectsPerFeedback = Math.min(10, Math.max(1, Number(body.maxAspectsPerFeedback ?? 5)));
+    const maxAspectsPerFeedback = Math.min(10, Math.max(1, body.maxAspectsPerFeedback ?? 5));
     const batch = await this.prisma.feedbackBatch.create({
       data: {
         batchCode: 'BATCH-' + randomUUID().slice(0, 12).toUpperCase(),
