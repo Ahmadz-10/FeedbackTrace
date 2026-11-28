@@ -7,7 +7,7 @@ import { TaskAModule } from './task-a/task-a.module.js';
 import { TaskAProcessor } from './task-a/task-a.processor.js';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, QueueInfrastructureModule, SharedModule, TaskAModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env', '.env'] }), DatabaseModule, QueueInfrastructureModule, SharedModule, TaskAModule],
   providers: [TaskAProcessor],
 })
 export class WorkerModule {}
