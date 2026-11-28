@@ -65,8 +65,10 @@ jobs:
           node-version: "22.16.0"
           cache: npm
       - run: npm install
-      - name: Validate Prisma schema
-        run: npm exec --workspace @feedbacktrace/database prisma validate -- --config prisma.config.ts
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Apply PostgreSQL migrations
+        run: npm run db:deploy
       - name: Build Node.js workspaces
         run: npm run build
       - name: Run API unit tests
